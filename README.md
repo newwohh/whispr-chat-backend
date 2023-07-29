@@ -5,7 +5,7 @@ This is the backend repository for Whispr, a real-time chat application develope
 ## Features
 
 - Real-time messaging: Users can send and receive messages instantly, making communication fast and efficient.
-- User Authentication: Whispr uses Firebase for user authentication, ensuring secure and reliable login/signup processes.
+- User Authentication: Whispr uses Python Django and Sqlite3 for user authentication, ensuring secure and reliable login/signup processes.
 - Pusher Integration: Pusher is used for real-time updates and notifications, enabling smooth and responsive messaging.
 - Database Storage: Firebase Firestore is utilized to store chat data, user profiles, and other relevant information.
 - WebSocket Support: Pusher's WebSocket support ensures real-time messaging without the need for frequent HTTP requests.
