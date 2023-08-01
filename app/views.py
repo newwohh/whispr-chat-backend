@@ -6,7 +6,7 @@ from .pusher import pusher_client
 from rest_framework_simplejwt.tokens import RefreshToken
 from .renderers import UserRenderer
 from .serializers import UserRegistrationSerializer,UserLoginSerializer
-
+from .models import User
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -43,9 +43,29 @@ class UserLoginView(APIView):
         email = serializer.data.get('email')
         password = serializer.data.get('password')
         user = authenticate(email=email,password=password)
+        all_members = User.objects.all()
+        users = []
+        for u in all_members:
+            each_user = {
+                'name':u.name,
+                'id':u.id
+            }
+            users.append(each_user)
+
         if user is not None:
             token = get_tokens_for_user(user)
-            return Response({'token':token,'msg':"login success"},status=status.HTTP_200_OK)
+            user_data = {
+                'id': user.id,
+                'username': email,
+                'email': password,
+                'name': user.name,
+            }
+            return Response({
+                'token': token,
+                'user': user_data,
+                'users':users,
+                'msg': "login success"
+            }, status=status.HTTP_200_OK)
         else:
             return Response({'errors':{'non_field_errors':["Email or Password not valid"]}},status=status.HTTP_404_NOT_FOUND)
         
