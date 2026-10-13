@@ -1,42 +1,151 @@
-# Whispr 
+# Whispr Backend
 
-This is the backend repository for Whispr, a real-time chat application developed using Python Django, Firebase, and Pusher. Whispr allows users to chat with each other in real-time, creating seamless communication experiences.
+This is the backend repository for **Whispr**, a real-time chat application powered by **Python Django**, **Django Channels (WebSockets)**, and **MongoDB**. Whispr supports real-time, low-latency 1-on-1 direct messaging, group chat rooms, and global world chat without relying on Firebase or third-party proprietary services.
 
 ## Features
 
-- Real-time messaging: Users can send and receive messages instantly, making communication fast and efficient.
-- User Authentication: Whispr uses Python Django and Sqlite3 for user authentication, ensuring secure and reliable login/signup processes.
-- Pusher Integration: Pusher is used for real-time updates and notifications, enabling smooth and responsive messaging.
-- Database Storage: Firebase Firestore is utilized to store chat data, user profiles, and other relevant information.
-- WebSocket Support: Pusher's WebSocket support ensures real-time messaging without the need for frequent HTTP requests.
+- **Real-Time WebSockets (`ws://`)**: Bi-directional, real-time messaging powered by Django Channels & Daphne ASGI.
+- **MongoDB Persistence**: Chat conversations, messages, timestamps, and participant metadata are stored in MongoDB.
+- **Direct & Room Messaging**: Supports 1-on-1 direct chats (automatic deterministic room ID mapping) and general rooms (e.g. `world`).
+- **Typing Indicators & Heartbeats**: WebSocket support for live typing status and connection ping/pong keepalives.
+- **REST API + WebSockets**: Dual support—send/receive messages via WebSockets or via REST API with automated real-time WebSocket broadcast.
+- **User Authentication**: Django user management and JWT tokens via `djangorestframework-simplejwt`.
+
+---
 
 ## Technologies Used
 
-- Python Django: A powerful web framework used for building the backend server and handling requests.
-- Firebase: Google's cloud-based platform used for user authentication and database storage.
-- Pusher: A service for building real-time applications and enabling seamless WebSocket communication.
-- Other dependencies: (List any other major dependencies and their purpose, if applicable.)
+- **Django 4.2+ / Daphne**: ASGI server & application framework.
+- **Django Channels**: Native WebSocket handling and channel layers.
+- **MongoDB & PyMongo**: Flexible NoSQL document database for messages and conversation histories.
+- **Redis & channels-redis**: In-memory channel layer for multi-worker and scalable WebSocket event broadcasting (with automatic in-memory fallback for lightweight local dev).
+- **Django REST Framework & SimpleJWT**: REST API and token-based authentication.
+
+---
 
 ## Getting Started
 
-To set up the backend locally, follow these steps:
+### 1. Prerequisites
+- Python 3.10+
+- MongoDB (running locally or via MongoDB Atlas)
+- Redis (optional for development, recommended for production channel layers)
 
-1. Clone this repository to your local machine.
-2. Install the required dependencies using `pip` or your preferred package manager.
-3. Set up a Firebase project and obtain the necessary API keys and credentials.
-4. Configure your Firebase settings in the Django project to enable authentication and database access.
-5. Set up a Pusher account and obtain the API keys.
-6. Integrate Pusher into the Django project to enable real-time messaging.
-7. Start the Django development server using the `manage.py` script.
+On macOS:
+```bash
+# Start MongoDB
+brew services start mongodb/brew/mongodb-community
 
-## Contributing
+# Start Redis (optional)
+brew services start redis
+```
 
-Contributions to Whispr are welcome! If you'd like to contribute to the project, please follow these steps:
+### 2. Setup Virtual Environment & Install Dependencies
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-1. Fork the repository on GitHub.
-2. Create a new branch for your feature or bug fix.
-3. Make your changes and commit them with descriptive commit messages.
-4. Push your branch to your forked repository.
-5. Submit a pull request to the main repository.
+### 3. Environment Variables (Optional)
+You can configure environment variables or use defaults:
+- `MONGODB_URI`: MongoDB connection string (default: `mongodb://localhost:27017`)
+- `MONGODB_DB_NAME`: Database name (default: `whispr`)
+- `REDIS_URL`: Redis connection string (default: `redis://127.0.0.1:6379/0`)
+- `USE_IN_MEMORY_CHANNEL_LAYER`: Set to `true` to use in-memory channel layer without Redis.
 
-We hope you enjoy using Whispr for your real-time chat needs! Happy chatting!
+### 4. Run Migrations & Start Server
+```bash
+python manage.py migrate
+python manage.py runserver
+```
+Or start Daphne directly:
+```bash
+daphne -b 0.0.0.0 -p 8000 whispr.asgi:application
+```
+
+---
+
+## WebSocket API Reference
+
+Connect to WebSocket at:
+- `ws://localhost:8000/ws/chat/<room_name>/`
+- `ws://localhost:8000/ws/chat/` (defaults to `world` room)
+
+### 1. Send Message
+```json
+{
+  "type": "chat_message",
+  "text": "Hello world!",
+  "senderId": "alice",
+  "recipientId": "bob"
+}
+```
+
+### 2. Receive Message Broadcast
+```json
+{
+  "type": "chat_message",
+  "id": "uuid-here",
+  "text": "Hello world!",
+  "message": "Hello world!",
+  "senderId": "alice",
+  "username": "alice",
+  "recipientId": "bob",
+  "date": "2026-10-13T16:45:00.000Z",
+  "room_id": "world"
+}
+```
+
+### 3. Typing Indicator
+Send:
+```json
+{
+  "type": "typing",
+  "username": "alice",
+  "is_typing": true
+}
+```
+Broadcast received by other participants in room:
+```json
+{
+  "type": "typing",
+  "username": "alice",
+  "is_typing": true,
+  "room": "world"
+}
+```
+
+### 4. Heartbeat (Ping/Pong)
+Send:
+```json
+{ "type": "ping" }
+```
+Response:
+```json
+{ "type": "pong" }
+```
+
+---
+
+## REST API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health/` | Health check for server and MongoDB connection |
+| `POST` | `/api/signup/` | User registration |
+| `POST` | `/api/login/` | User login & JWT issuance |
+| `GET` | `/api/messages/?room=world` | Fetch messages from MongoDB for world or specified room |
+| `POST` | `/api/messages/` | Send message to world chat & broadcast over WebSockets |
+| `GET` | `/api/chats/` | List all conversations or filter by `?username=<name>` |
+| `GET` | `/api/chats/<room_id>/messages/` | Get message history for a specific room |
+| `POST` | `/api/chats/<room_id>/messages/` | Post message to room & broadcast over WebSockets |
+| `GET` | `/api/chats/direct/<other_user>/messages/?user=<current_user>` | Get 1-on-1 messages between users |
+| `POST` | `/api/chats/direct/<other_user>/messages/` | Send 1-on-1 message & broadcast over WebSockets |
+
+---
+
+## Running Tests
+Run the automated test suite covering MongoDB, REST APIs, and WebSockets:
+```bash
+python manage.py test
+```
