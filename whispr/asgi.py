@@ -1,16 +1,27 @@
 """
 ASGI config for whispr project.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
+Exposes the ASGI callable as a module-level variable named ``application``.
+Routes HTTP requests to Django and WebSocket connections to Django Channels.
 """
 
 import os
-
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'whispr.settings')
 
-application = get_asgi_application()
+# Initialize Django ASGI application early to ensure AppRegistry is loaded
+django_asgi_app = get_asgi_application()
+
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+import app.routing
+
+application = ProtocolTypeRouter({
+    "http": django_asgi_app,
+    "websocket": AuthMiddlewareStack(
+        URLRouter(
+            app.routing.websocket_urlpatterns
+        )
+    ),
+})
