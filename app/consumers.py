@@ -120,23 +120,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 date=date_str,
             )
 
-            # Broadcast to all connected clients in the group
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    "type": "chat_message_broadcast",
-                    "data": {
-                        "id": saved_msg["id"],
-                        "text": saved_msg["text"],
-                        "message": saved_msg["text"],  # alias for frontend compatibility
-                        "senderId": saved_msg["senderId"],
-                        "username": saved_msg["senderId"],  # alias for frontend compatibility
-                        "recipientId": saved_msg.get("recipientId"),
-                        "date": saved_msg["date"],
-                        "room_id": self.room_name,
+            broadcast_data = {
+                "id": saved_msg["id"],
+                "text": saved_msg["text"],
+                "message": saved_msg["text"],
+                "senderId": saved_msg["senderId"],
+                "username": saved_msg["senderId"],
+                "recipientId": saved_msg.get("recipientId"),
+                "date": saved_msg["date"],
+                "room_id": self.room_name,
+            }
+
+            try:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message_broadcast",
+                        "data": broadcast_data,
                     }
-                }
-            )
+                )
+            except Exception as e:
+                logger.warning(f"Group broadcast fallback: {e}")
+                await self.send(text_data=json.dumps({
+                    "type": "chat_message",
+                    **broadcast_data
+                }))
 
     async def chat_message_broadcast(self, event):
         """Receive message broadcast from group and send down to WebSocket client."""

@@ -88,6 +88,25 @@ def get_db():
     return _mongo_db
 
 
+def serialize_doc(doc):
+    """Recursively converts datetime and non-JSON-serializable objects to ISO strings."""
+    if doc is None:
+        return None
+    clean = dict(doc)
+    clean.pop('_id', None)
+    for k, v in list(clean.items()):
+        if isinstance(v, datetime):
+            clean[k] = v.isoformat()
+        elif isinstance(v, dict):
+            clean[k] = serialize_doc(v)
+        elif isinstance(v, list):
+            clean[k] = [
+                serialize_doc(i) if isinstance(i, dict) else (i.isoformat() if isinstance(i, datetime) else i)
+                for i in v
+            ]
+    return clean
+
+
 def generate_direct_room_id(user1: str, user2: str) -> str:
     """
     Generate room identifier for direct chat between two users.
@@ -116,8 +135,12 @@ def save_message(room_id: str, sender_id: str, text: str, recipient_id: str = No
         "created_at": datetime.now(timezone.utc),
     }
 
-    # Insert into messages collection
-    db.messages.insert_one(message_doc.copy())
+    # Upsert into messages collection by id to prevent duplicate inserts
+    db.messages.update_one(
+        {"id": msg_id},
+        {"$setOnInsert": message_doc},
+        upsert=True
+    )
 
     # Update or create chat conversation
     participants = [sender_id]
@@ -162,7 +185,7 @@ def save_message(room_id: str, sender_id: str, text: str, recipient_id: str = No
 def get_messages(room_id: str, limit: int = 200, skip: int = 0):
     """
     Retrieves messages for a given room sorted chronologically.
-    Returns list of message dictionaries.
+    Returns list of fully JSON-serializable message dictionaries.
     """
     db = get_db()
     cursor = db.messages.find(
@@ -170,14 +193,14 @@ def get_messages(room_id: str, limit: int = 200, skip: int = 0):
         {"_id": 0}
     ).sort("created_at", ASCENDING).skip(skip).limit(limit)
 
-    return list(cursor)
+    return [serialize_doc(doc) for doc in cursor]
 
 
 def get_chat_conversation(room_id: str):
     """Retrieves chat conversation metadata by room_id."""
     db = get_db()
     doc = db.chats.find_one({"room_id": room_id}, {"_id": 0})
-    return doc
+    return serialize_doc(doc)
 
 
 def get_user_conversations(username: str):
@@ -187,14 +210,14 @@ def get_user_conversations(username: str):
         {"participants": username},
         {"_id": 0}
     ).sort("updated_at", DESCENDING)
-    return list(cursor)
+    return [serialize_doc(doc) for doc in cursor]
 
 
 def get_all_chats():
     """Retrieves all chat rooms/conversations."""
     db = get_db()
     cursor = db.chats.find({}, {"_id": 0}).sort("updated_at", DESCENDING)
-    return list(cursor)
+    return [serialize_doc(doc) for doc in cursor]
 
 
 def check_mongo_connection():

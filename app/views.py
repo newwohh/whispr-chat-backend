@@ -78,6 +78,8 @@ class MessageAPIView(APIView):
         username = request.data.get('username') or request.data.get('senderId') or 'Anonymous'
         text = request.data.get('message') or request.data.get('text') or ''
         room_id = request.data.get('room') or request.data.get('room_id') or 'world'
+        msg_id = request.data.get('id')
+        date_str = request.data.get('date')
 
         if not text.strip():
             return Response({'error': 'Message text is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -86,6 +88,8 @@ class MessageAPIView(APIView):
             room_id=room_id,
             sender_id=username,
             text=text,
+            message_id=msg_id,
+            date=date_str,
         )
 
         broadcast_chat_message(room_id, saved)
