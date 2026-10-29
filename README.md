@@ -1,29 +1,56 @@
 # Whispr Backend
 
-This is the backend repository for **Whispr**, a real-time chat application powered by **Python Django**, **Django Channels (WebSockets)**, and **MongoDB**. Whispr supports real-time, low-latency 1-on-1 direct messaging, group chat rooms, and global world chat without relying on Firebase or third-party proprietary services.
+This is the backend repository for **Whispr**, a real-time chat application powered by **Bun.js (TypeScript)**, **WebSockets**, and **MongoDB** (with legacy Python Django Channels support maintained). Whispr supports real-time, low-latency 1-on-1 direct messaging, group chat rooms, and global world chat without relying on Firebase or third-party proprietary services.
 
 ## Features
 
-- **Real-Time WebSockets (`ws://`)**: Bi-directional, real-time messaging powered by Django Channels & Daphne ASGI.
+- **Real-Time WebSockets (`ws://`)**: Bi-directional, real-time messaging powered by Bun's native WebSocket engine and topic pub/sub.
 - **MongoDB Persistence**: Chat conversations, messages, timestamps, and participant metadata are stored in MongoDB.
 - **Direct & Room Messaging**: Supports 1-on-1 direct chats (automatic deterministic room ID mapping) and general rooms (e.g. `world`).
 - **Typing Indicators & Heartbeats**: WebSocket support for live typing status and connection ping/pong keepalives.
 - **REST API + WebSockets**: Dual support—send/receive messages via WebSockets or via REST API with automated real-time WebSocket broadcast.
-- **User Authentication**: Django user management and JWT tokens via `djangorestframework-simplejwt`.
+- **User Authentication**: User management with `bun:sqlite` (compatible with existing Django SQLite accounts) and SimpleJWT-compatible access & refresh tokens.
 
 ---
 
 ## Technologies Used
 
-- **Django 4.2+ / Daphne**: ASGI server & application framework.
-- **Django Channels**: Native WebSocket handling and channel layers.
-- **MongoDB & PyMongo**: Flexible NoSQL document database for messages and conversation histories.
-- **Redis & channels-redis**: In-memory channel layer for multi-worker and scalable WebSocket event broadcasting (with automatic in-memory fallback for lightweight local dev).
-- **Django REST Framework & SimpleJWT**: REST API and token-based authentication.
+- **Bun 1.3+**: High-performance JavaScript/TypeScript runtime.
+- **Hono**: Fast, lightweight web framework for REST API routing.
+- **Bun Native WebSockets**: High-throughput, sub-millisecond latency WebSocket handling with native topic pub/sub (`ws.subscribe / server.publish`).
+- **MongoDB (official driver)**: Flexible NoSQL document database for messages and conversation histories.
+- **bun:sqlite**: Native SQLite engine for users, credentials, and authentication.
+- **jose**: Type-safe JWT access and refresh token generation.
 
 ---
 
-## Getting Started
+## Getting Started (Bun.js - Recommended)
+
+### 1. Prerequisites
+- [Bun](https://bun.sh) (`v1.2+`)
+- MongoDB (running locally or via MongoDB Atlas)
+- Redis (optional, for multi-node clustering)
+
+### 2. Install Dependencies
+```bash
+bun install
+```
+
+### 3. Run Development Server
+```bash
+bun run dev
+# Or production mode
+bun start
+```
+
+### 4. Run Tests
+```bash
+bun test
+```
+
+---
+
+## Getting Started (Legacy Python Django)
 
 ### 1. Prerequisites
 - Python 3.10+
