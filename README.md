@@ -1,6 +1,6 @@
 # Whispr Backend
 
-This is the backend repository for **Whispr**, a real-time chat application powered by **Bun.js (TypeScript)**, **WebSockets**, and **MongoDB** (with legacy Python Django Channels support maintained). Whispr supports real-time, low-latency 1-on-1 direct messaging, group chat rooms, and global world chat without relying on Firebase or third-party proprietary services.
+This is the backend repository for **Whispr**, a real-time chat application powered by **Bun.js (TypeScript)**, **WebSockets**, and **MongoDB**. Whispr supports real-time, low-latency 1-on-1 direct messaging, group chat rooms, and global world chat without relying on Firebase or third-party proprietary services.
 
 ## Features
 
@@ -9,7 +9,7 @@ This is the backend repository for **Whispr**, a real-time chat application powe
 - **Direct & Room Messaging**: Supports 1-on-1 direct chats (automatic deterministic room ID mapping) and general rooms (e.g. `world`).
 - **Typing Indicators & Heartbeats**: WebSocket support for live typing status and connection ping/pong keepalives.
 - **REST API + WebSockets**: Dual support—send/receive messages via WebSockets or via REST API with automated real-time WebSocket broadcast.
-- **User Authentication**: User management with `bun:sqlite` (compatible with existing Django SQLite accounts) and SimpleJWT-compatible access & refresh tokens.
+- **User Authentication**: User management with `bun:sqlite` (compatible with existing SQLite accounts) and SimpleJWT-compatible access & refresh tokens.
 
 ---
 
@@ -24,7 +24,7 @@ This is the backend repository for **Whispr**, a real-time chat application powe
 
 ---
 
-## Getting Started (Bun.js - Recommended)
+## Getting Started
 
 ### 1. Prerequisites
 - [Bun](https://bun.sh) (`v1.2+`)
@@ -46,48 +46,6 @@ bun start
 ### 4. Run Tests
 ```bash
 bun test
-```
-
----
-
-## Getting Started (Legacy Python Django)
-
-### 1. Prerequisites
-- Python 3.10+
-- MongoDB (running locally or via MongoDB Atlas)
-- Redis (optional for development, recommended for production channel layers)
-
-On macOS:
-```bash
-# Start MongoDB
-brew services start mongodb/brew/mongodb-community
-
-# Start Redis (optional)
-brew services start redis
-```
-
-### 2. Setup Virtual Environment & Install Dependencies
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 3. Environment Variables (Optional)
-You can configure environment variables or use defaults:
-- `MONGODB_URI`: MongoDB connection string (default: `mongodb://localhost:27017`)
-- `MONGODB_DB_NAME`: Database name (default: `whispr`)
-- `REDIS_URL`: Redis connection string (default: `redis://127.0.0.1:6379/0`)
-- `USE_IN_MEMORY_CHANNEL_LAYER`: Set to `true` to use in-memory channel layer without Redis.
-
-### 4. Run Migrations & Start Server
-```bash
-python manage.py migrate
-python manage.py runserver
-```
-Or start Daphne directly:
-```bash
-daphne -b 0.0.0.0 -p 8000 whispr.asgi:application
 ```
 
 ---
@@ -174,5 +132,5 @@ Response:
 ## Running Tests
 Run the automated test suite covering MongoDB, REST APIs, and WebSockets:
 ```bash
-python manage.py test
+bun test
 ```
