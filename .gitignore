@@ -38,6 +38,11 @@ db.sqlite3-journal
 .env
 .env.local
 
+# Node & Bun
+node_modules/
+bun.lockb
+test_db.sqlite3*
+
 # IDEs
 .idea/
 .vscode/
